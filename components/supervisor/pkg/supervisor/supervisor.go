@@ -1106,6 +1106,16 @@ func buildChildProcEnv(cfg *Config, envvars []string, runGP bool, setJavaXmx boo
 	envs["HOME"] = "/home/gitpod"
 	envs["USER"] = "gitpod"
 
+	if cpuCount, ok := envs["GITPOD_CPU_COUNT"]; ok {
+		if _, exists := envs["JAVA_TOOL_OPTIONS"]; exists {
+			// check if the JAVA_TOOL_OPTIONS already contains the ActiveProcessorCount flag
+			if !strings.Contains(envs["JAVA_TOOL_OPTIONS"], "-XX:ActiveProcessorCount=") {
+				envs["JAVA_TOOL_OPTIONS"] += fmt.Sprintf(" -XX:+UseContainerSupport -XX:ActiveProcessorCount=%s", cpuCount)
+			}
+		} else {
+			envs["JAVA_TOOL_OPTIONS"] = fmt.Sprintf("-XX:+UseContainerSupport -XX:ActiveProcessorCount=%s", cpuCount)
+		}
+	}
 	// Particular Java optimisation: Java pre v10 did not gauge it's available memory correctly, and needed explicitly setting "-Xmx" for all Hotspot/openJDK VMs
 	if mem, ok := envs["GITPOD_MEMORY"]; ok && setJavaXmx {
 		envs["JAVA_TOOL_OPTIONS"] += fmt.Sprintf(" -Xmx%sm", mem)
